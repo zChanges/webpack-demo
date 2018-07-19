@@ -1,0 +1,8 @@
+@import 'style.css';
+@import 'common.css';
+body {
+  padding-top: 20px;
+}
+body div {
+  padding-left: 40px;
+}

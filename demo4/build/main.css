@@ -1,0 +1,13 @@
+body{
+  background: #ddd;
+}
+div{
+  font-size: 20px;
+}
+body {
+  padding-top: 20px;
+}
+body div {
+  padding-left: 40px;
+}
+
