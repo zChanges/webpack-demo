@@ -281,3 +281,146 @@ module.exports = webpackConfig
   ],
   ...
 ```
+
+## Vue配置
+
+### 公共部分
+
+> - 入口出口
+> - 配置一些loader
+> - 定义扩展名
+
+```js
+// webpack.base.config.js
+
+
+const path = require('path')
+
+const ROOT_PATH = path.resolve(__dirname, '../')
+const SRC_PATH = path.resolve(ROOT_PATH, 'src')
+const DIST_PATH = path.resolve(ROOT_PATH, 'dist')
+const MAIN_PATH = path.resolve(SRC_PATH, 'main.js')
+const { VueLoaderPlugin } = require('vue-loader');
+
+module.exports = {
+  entry: {
+    app: MAIN_PATH // 入口地址
+  },
+  output: { // 出口
+    path: DIST_PATH,
+    filename: '[name].js'
+  },
+  resolve: {
+    extensions: ['.js', '.vue'], // 自动解析已确定的扩展文件名称
+    alias: {  // 设置别名
+      '@': SRC_PATH
+    }
+  },
+  module: { // 定义的loader
+    rules: [
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader'
+      },
+      {
+        test: /\.js$/,
+        loader: 'babel-loader',
+        include: [SRC_PATH]
+      },  
+      {
+        test: /\.css|.less$/,
+        use: ['vue-style-loader','css-loader','less-loader'],
+      }
+    ]
+  },
+  plugins:[
+        new VueLoaderPlugin()
+        // vue-loader的使用都是需要伴生 VueLoaderPlugin
+  ]
+}
+```
+
+### 开发环境
+
+> - 启动服务
+> - 自动生成index.html
+> - 开发环境的devtool [具体参考](http://webpack.css88.com/configuration/devtool.html)
+
+```js
+const baseWebpackConfig = require('./webpack.base.config');
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const merge = require('webpack-merge');
+const devWebPackConfig = merge(baseWebpackConfig,{
+  mode: 'development',
+  devtool: 'cheap-module-eval-source-map',  
+  // http://webpack.css88.com/configuration/devtool.html
+  devServer: {
+		inline: true,
+		progress: true,
+    host: 'localhost',
+		port: 5050,
+    compress: true // 开启启动gzip压缩
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      filename: 'index.html',
+      template: 'index.html',
+      inject: true
+    })
+  ]
+})
+
+
+module.exports = devWebPackConfig
+```
+
+### 生产环境
+
+> - 提取css 可预先加载css
+> - 自动生成html 并压缩删除注释等
+> - 出口文件添加hash值清理缓存
+> - 设置devtool：source-map 生成一个单独的map文件，并在出口文件添加注释 （用来调试）
+
+```js
+// webpack.prod.config.js
+const path = require('path')
+const baseWebpackConfig = require('./webpack.base.config');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+
+const merge = require('webpack-merge');
+
+const prodWebPackConfig = merge(baseWebpackConfig, {
+  mode: 'production',
+  devtool: 'source-map',
+  output: {
+    filename: '[name].[chunkhash].js'
+  },
+  module: {
+    rules: [
+      {
+        test: /\.css|.less$/,
+        use: [ MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']//处理css
+      },
+    ]
+  },
+  plugins: [
+    new MiniCssExtractPlugin({
+      filename: "[name].[chunkhash].css",
+      chunkFilename: "[id].[chunkhash].css"
+    }),
+    new HtmlWebpackPlugin({
+      filename: path.resolve(__dirname, '../dist/index.html'),
+      template: 'index.html',
+      inject: true, // script标签位于html文件的 body 底部
+      minify: {
+        removeComments: true, // 去除注释
+        collapseWhitespace: true, // 去空格
+        removeAttributeQuotes: true // 移除属性的引号
+      },
+    }),
+  ]
+})
+
+module.exports = prodWebPackConfig;
+```
